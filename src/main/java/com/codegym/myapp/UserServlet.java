@@ -1,6 +1,6 @@
 package com.codegym.myapp;
 
-import com.codegym.myapp.entities.User;
+import com.codegym.myapp.services.UserServices;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -9,21 +9,17 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Pattern;
 
 @WebServlet(name = "userServlet", urlPatterns = "/users/*")
 public class UserServlet extends HttpServlet {
-    private static List<User> users = new ArrayList<>();
+    private UserServices userServices;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        users.add(new User(1, "Jayce", "jayce@gmail.com", "0123456789", "001 Top lane", "jayce", "123"));
-        users.add(new User(2, "Wukong", "wukong@gmail.com", "0987654321", "002 Jungle", "wukong", "123"));
-        users.add(new User(3, "Sylas", "sylas@gmail.com", "0432167890", "003 Mid lane", "sylas", "123"));
-        users.add(new User(4, "Lucian", "lucian@gmail.com", "0276543890", "004 Bot lane adc", "lucian", "123"));
-        users.add(new User(5, "Senna", "senna@gmail.com", "0314567890", "005 Bot lane support", "senna", "123"));
+        super.init(config);
+        userServices = new UserServices();
+        userServices.initData();
+
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -36,20 +32,20 @@ public class UserServlet extends HttpServlet {
         }
         switch (pathInfo) {
             case "/":
-                renderPageListUser(request, response);
+                userServices.renderPageListUser(request, response);
                 break;
             case "/create":
-                renderFormCreateUser(request, response);
+                userServices.renderFormCreateUser(request, response);
                 break;
             case "/delete":
-                deleteUserById(request, response);
+                userServices.deleteUserById(request, response);
                 break;
 
             case "/edit":
-                renderFormEditUser(request, response);
+                userServices.renderFormEditUser(request, response);
                 break;
             case "/search":
-                searchUser(request, response);
+                userServices.searchUser(request, response);
                 break;
         }
     }
@@ -64,145 +60,12 @@ public class UserServlet extends HttpServlet {
         }
         switch (pathInfo) {
             case "/create":
-                createUser(request, response);
+                userServices.createUser(request, response);
                 break;
             case "/edit":
-                updateUser(request, response);
+                userServices.updateUser(request, response);
                 break;
         }
     }
 
-    private static void renderPageListUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        // truyen list user vao request
-        request.setAttribute("users", users);
-        request.getRequestDispatcher("/WEB-INF/view/users/list.jsp").forward(request, response);
-    }
-
-    private static void renderFormCreateUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.getRequestDispatcher("/WEB-INF/view/users/create.jsp").forward(request, response);
-    }
-
-    private static void createUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        // lay du lieu tu form
-        String _name = request.getParameter("name");
-        String _email = request.getParameter("email");
-        String _phone = request.getParameter("phone");
-        String _address = request.getParameter("address");
-        String _username = request.getParameter("username");
-        String _password = request.getParameter("password");
-
-        if (_username == null || _username.isEmpty() ||
-                _password == null || _password.isEmpty()) {
-
-            request.setAttribute("error", "Username & Password required");
-            request.getRequestDispatcher("/WEB-INF/view/users/create.jsp").forward(request, response);
-            return;
-        }
-
-        // tao user moi
-        User newUser = new User();
-        newUser.setId(users.size() + 1);
-        newUser.setName(_name);
-        newUser.setEmail(_email);
-        newUser.setPhone(_phone);
-        newUser.setAddress(_address);
-        newUser.setUsername(_username);
-        newUser.setPassword(_password);
-
-        // them user vao list
-        users.add(newUser);
-
-        // chuyen huong ve trang danh sach user
-        response.sendRedirect("/users");
-    }
-
-    private static void deleteUserById(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String id = request.getParameter("id");
-        // tim user theo id
-        User userDelete = null;
-        for (User user : users) {
-            if (String.valueOf(user.getId()).equals(id)) {
-                userDelete = user;
-                break;
-            }
-        }
-        // xoa user neu tim thay
-        if (userDelete != null) {
-            users.remove(userDelete);
-            response.sendRedirect("/users");
-        } else {
-            response.sendRedirect("/users");
-        }
-    }
-
-    private static void renderFormEditUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        String id = request.getParameter("id");
-
-        User userEdit = null;
-        for (User user : users) {
-            if (String.valueOf(user.getId()).equals(id)) {
-                userEdit = user;
-                break;
-            }
-        }
-
-        if (userEdit != null) {
-            request.setAttribute("user", userEdit);
-            request.getRequestDispatcher("/WEB-INF/view/users/edit.jsp").forward(request, response);
-        } else {
-            request.getRequestDispatcher("/WEB-INF/view/error/404.jsp").forward(request, response);
-        }
-    }
-
-    private static void updateUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String id = request.getParameter("id");
-        String _name = request.getParameter("name");
-        String _email = request.getParameter("email");
-        String _phone = request.getParameter("phone");
-        String _address = request.getParameter("address");
-        String _username = request.getParameter("username");
-        String _password = request.getParameter("password");
-
-        User userUpdate = null;
-        for (User user : users) {
-            if (String.valueOf(user.getId()).equals(id)) {
-                userUpdate = user;
-                break;
-            }
-        }
-
-        if (userUpdate != null) {
-            userUpdate.setName(_name);
-            userUpdate.setEmail(_email);
-            userUpdate.setPhone(_phone);
-            userUpdate.setAddress(_address);
-            response.sendRedirect("/users");
-        } else {
-            request.getRequestDispatcher("/WEB-INF/view/error/404.jsp").forward(request, response);
-        }
-    }
-
-    private static void searchUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        String keyword = request.getParameter("keyword");
-
-        List<User> result = new ArrayList<>();
-
-        for (User user : users) {
-            if (user.getUsername().toLowerCase().contains(keyword.toLowerCase())) {
-                result.add(user);
-            }
-        }
-        System.out.println(result.size());
-        request.setAttribute("users", result);
-        request.getRequestDispatcher("/WEB-INF/view/users/list.jsp").forward(request, response);
-    }
 }
