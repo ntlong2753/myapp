@@ -41,38 +41,25 @@ public class UserServices {
         request.getRequestDispatcher("/WEB-INF/view/users/create.jsp").forward(request, response);
     }
 
+    private static int currentId = 5;
+
     public static void createUser(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // lay du lieu tu form
-        String _name = request.getParameter("name");
-        String _email = request.getParameter("email");
-        String _phone = request.getParameter("phone");
-        String _address = request.getParameter("address");
-        String _username = request.getParameter("username");
-        String _password = request.getParameter("password");
 
-        if (_username == null || _username.isEmpty() ||
-                _password == null || _password.isEmpty()) {
-
-            request.setAttribute("error", "Username & Password required");
-            request.getRequestDispatcher("/WEB-INF/view/users/create.jsp").forward(request, response);
-            return;
-        }
-
-        // tao user moi
         User newUser = new User();
-        newUser.setId(users.size() + 1);
-        newUser.setName(_name);
-        newUser.setEmail(_email);
-        newUser.setPhone(_phone);
-        newUser.setAddress(_address);
-        newUser.setUsername(_username);
-        newUser.setPassword(_password);
 
-        // them user vao list
+        currentId++;
+        newUser.setId(currentId);
+
+        newUser.setName(request.getParameter("name"));
+        newUser.setEmail(request.getParameter("email"));
+        newUser.setPhone(request.getParameter("phone"));
+        newUser.setAddress(request.getParameter("address"));
+        newUser.setUsername(request.getParameter("username"));
+        newUser.setPassword(request.getParameter("password"));
+
         users.add(newUser);
 
-        // chuyen huong ve trang danh sach user
         response.sendRedirect("/users");
     }
 
