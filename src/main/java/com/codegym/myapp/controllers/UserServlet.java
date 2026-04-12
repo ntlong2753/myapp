@@ -1,4 +1,4 @@
-package com.codegym.myapp;
+package com.codegym.myapp.controllers;
 
 import com.codegym.myapp.services.UserServices;
 import jakarta.servlet.ServletConfig;
