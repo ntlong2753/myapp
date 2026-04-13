@@ -1,5 +1,6 @@
 package com.codegym.myapp.controllers;
 
+import com.codegym.myapp.models.Database;
 import com.codegym.myapp.services.UserServices;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
@@ -9,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 @WebServlet(name = "userServlet", urlPatterns = "/users/*")
 public class UserServlet extends HttpServlet {
@@ -17,8 +19,6 @@ public class UserServlet extends HttpServlet {
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        userServices = new UserServices();
-        userServices.initData();
 
     }
 
@@ -32,20 +32,36 @@ public class UserServlet extends HttpServlet {
         }
         switch (pathInfo) {
             case "/":
-                userServices.renderPageListUser(request, response);
+                try {
+                    userServices.renderPageListUser(request, response);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
             case "/create":
                 userServices.renderFormCreateUser(request, response);
                 break;
             case "/delete":
-                userServices.deleteUserById(request, response);
+                try {
+                    userServices.deleteUserById(request, response);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
 
             case "/edit":
-                userServices.renderFormEditUser(request, response);
+                try {
+                    userServices.renderFormEditUser(request, response);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
             case "/search":
-                userServices.searchUser(request, response);
+                try {
+                    userServices.searchUser(request, response);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
         }
     }
@@ -60,10 +76,18 @@ public class UserServlet extends HttpServlet {
         }
         switch (pathInfo) {
             case "/create":
-                userServices.createUser(request, response);
+                try {
+                    userServices.createUser(request, response);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
             case "/edit":
-                userServices.updateUser(request, response);
+                try {
+                    userServices.updateUser(request, response);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
         }
     }

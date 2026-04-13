@@ -1,35 +1,51 @@
 package com.codegym.myapp.services;
 
 import com.codegym.myapp.entities.User;
+import com.codegym.myapp.models.Database;
+import com.codegym.myapp.models.UserModel;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserServices {
-    private static List<User> users = new ArrayList<>();
+    private static final UserModel userModel = new UserModel(Database.getConnection());
 
     public UserServices() {
 
     }
 
-    public void initData() {
-        users.add(new User(1, "Jayce", "jayce@gmail.com", "0123456789", "001 Top lane", "jayce", "123"));
-        users.add(new User(2, "Wukong", "wukong@gmail.com", "0987654321", "002 Jungle", "wukong", "123"));
-        users.add(new User(3, "Sylas", "sylas@gmail.com", "0432167890", "003 Mid lane", "sylas", "123"));
-        users.add(new User(4, "Lucian", "lucian@gmail.com", "0276543890", "004 Bot lane adc", "lucian", "123"));
-        users.add(new User(5, "Senna", "senna@gmail.com", "0314567890", "005 Bot lane support", "senna", "123"));
-    }
+    public static List<User> getAllUsers() throws SQLException {
+        List<User> users = new ArrayList<>();
+        // 1. Xóa sạch cái list cũ trong RAM đi trước khi nạp dữ liệu mới từ DB
+        users.clear();
 
-    public static List<User> getAllUsers() {
+        ResultSet resultSet = userModel.getAll();
+        while (resultSet.next()) {
+            User user = new User();
+
+            // 2. PHẢI lấy dữ liệu từ resultSet nạp vào đối tượng user
+            user.setId(resultSet.getInt("id"));
+            user.setName(resultSet.getString("name"));
+            user.setEmail(resultSet.getString("email"));
+            user.setPhone(resultSet.getString("phone"));
+            user.setAddress(resultSet.getString("address"));
+            user.setUsername(resultSet.getString("username"));
+            user.setPassword(resultSet.getString("password"));
+
+            // 3. Sau đó mới add vào list
+            users.add(user);
+        }
         return users;
     }
 
     public static void renderPageListUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException, IOException, SQLException {
         // truyen list user vao request
         List<User> users = UserServices.getAllUsers();
         request.setAttribute("users", users);
@@ -44,7 +60,7 @@ public class UserServices {
     private static int currentId = 5;
 
     public static void createUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException, IOException, SQLException {
 
         User newUser = new User();
 
@@ -58,45 +74,44 @@ public class UserServices {
         newUser.setUsername(request.getParameter("username"));
         newUser.setPassword(request.getParameter("password"));
 
-        users.add(newUser);
+        userModel.create(
+                newUser.getName(),
+                newUser.getEmail(),
+                newUser.getPhone(),
+                newUser.getAddress(),
+                newUser.getUsername(),
+                newUser.getPassword()
+        );
 
         response.sendRedirect("/users");
     }
 
     public static void deleteUserById(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException, IOException, SQLException {
         String id = request.getParameter("id");
-        // tim user theo id
-        User userDelete = null;
-        for (User user : users) {
-            if (String.valueOf(user.getId()).equals(id)) {
-                userDelete = user;
-                break;
-            }
-        }
-        // xoa user neu tim thay
-        if (userDelete != null) {
-            users.remove(userDelete);
-            response.sendRedirect("/users");
-        } else {
-            response.sendRedirect("/users");
-        }
+        userModel.deleteById(Integer.parseInt(id));
+        response.sendRedirect("/users");
     }
 
     public static void renderFormEditUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException, IOException, SQLException {
 
         String id = request.getParameter("id");
+        // tim user trong db
+        ResultSet resultSet = userModel.getById(Integer.parseInt(id));
 
-        User userEdit = null;
-        for (User user : users) {
-            if (String.valueOf(user.getId()).equals(id)) {
-                userEdit = user;
-                break;
+        if (resultSet != null) {
+            User userEdit = null;
+            while (resultSet.next()) {
+                userEdit = new User();
+                userEdit.setId(resultSet.getInt("id"));
+                userEdit.setName(resultSet.getString("name"));
+                userEdit.setEmail(resultSet.getString("email"));
+                userEdit.setPhone(resultSet.getString("phone"));
+                userEdit.setAddress(resultSet.getString("address"));
+                userEdit.setUsername(resultSet.getString("username"));
+                userEdit.setPassword(resultSet.getString("password"));
             }
-        }
-
-        if (userEdit != null) {
             request.setAttribute("user", userEdit);
             request.getRequestDispatcher("/WEB-INF/view/users/edit.jsp").forward(request, response);
         } else {
@@ -105,7 +120,7 @@ public class UserServices {
     }
 
     public static void updateUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException, IOException, SQLException {
         String id = request.getParameter("id");
         String _name = request.getParameter("name");
         String _email = request.getParameter("email");
@@ -114,19 +129,12 @@ public class UserServices {
         String _username = request.getParameter("username");
         String _password = request.getParameter("password");
 
+        // tim user trong db
+        ResultSet resultSet = userModel.getById(Integer.parseInt(id));
         User userUpdate = null;
-        for (User user : users) {
-            if (String.valueOf(user.getId()).equals(id)) {
-                userUpdate = user;
-                break;
-            }
-        }
 
-        if (userUpdate != null) {
-            userUpdate.setName(_name);
-            userUpdate.setEmail(_email);
-            userUpdate.setPhone(_phone);
-            userUpdate.setAddress(_address);
+        if (resultSet != null) {
+            userModel.updateById(Integer.parseInt(id), _name, _email, _phone, _address, _username, _password);
             response.sendRedirect("/users");
         } else {
             request.getRequestDispatcher("/WEB-INF/view/error/404.jsp").forward(request, response);
@@ -134,16 +142,25 @@ public class UserServices {
     }
 
     public static void searchUser(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+            throws ServletException, IOException, SQLException {
 
         String keyword = request.getParameter("keyword");
 
         List<User> result = new ArrayList<>();
 
-        for (User user : users) {
-            if (user.getUsername().toLowerCase().contains(keyword.toLowerCase())) {
-                result.add(user);
-            }
+        ResultSet resultSet = userModel.search(keyword);
+
+        while (resultSet.next()) {
+            User user = new User();
+            user.setId(resultSet.getInt("id"));
+            user.setName(resultSet.getString("name"));
+            user.setEmail(resultSet.getString("email"));
+            user.setPhone(resultSet.getString("phone"));
+            user.setAddress(resultSet.getString("address"));
+            user.setUsername(resultSet.getString("username"));
+            user.setPassword(resultSet.getString("password"));
+
+            result.add(user);
         }
         System.out.println(result.size());
         request.setAttribute("users", result);
